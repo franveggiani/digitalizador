@@ -10,7 +10,7 @@
     }
   },
   "scripts": {
-    "test": "vitest run --environment jsdom",
+    "test": "pnpm --filter @digitalizador/sdk build && vitest run --environment jsdom",
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
