@@ -18,7 +18,6 @@ import { register } from 'ol/proj/proj4.js';
 import VectorSource from 'ol/source/Vector.js';
 import { Fill, Stroke, Style } from 'ol/style.js';
 import { buffer as bufferExtent } from 'ol/extent.js';
-import type { Extent } from 'ol/extent.js';
 import proj4 from 'proj4';
 import type { NormalizedDigitizerConfig } from '../config.js';
 
@@ -236,6 +235,12 @@ export class CadastralMapAdapter {
     this.selectionLayer.setVisible(true);
     this.snapListener?.(false);
     this.vertexListener?.(null);
+  }
+
+  public clearDraft(): void {
+    this.exitModify();
+    this.draftSource.clear();
+    this.selectionLayer.setVisible(true);
   }
 
   public setDraftGeometry(geometry: GeoJsonGeometry): void {
