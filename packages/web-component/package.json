@@ -1,0 +1,26 @@
+{
+  "name": "@digitalizador/web-component",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "test": "vitest run --environment jsdom",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@digitalizador/sdk": "workspace:*",
+    "lit": "3.3.3",
+    "ol": "10.10.0",
+    "proj4": "2.22.0"
+  },
+  "devDependencies": {
+    "jsdom": "30.0.1"
+  }
+}
