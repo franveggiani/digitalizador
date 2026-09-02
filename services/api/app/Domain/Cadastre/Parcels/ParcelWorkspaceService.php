@@ -2,6 +2,7 @@
 
 namespace App\Domain\Cadastre\Parcels;
 
+use App\Domain\Cadastre\Geometry\BoundingBox;
 use App\Models\Dataset;
 use App\Support\ApiProblemException;
 use Illuminate\Database\QueryException;
@@ -140,6 +141,55 @@ final class ParcelWorkspaceService
             'geometry' => $this->decodeObject($row->geometry),
             'properties' => $this->decodeObject($row->properties),
             'active' => (bool) $row->active,
+        ];
+    }
+
+    /**
+     * @return array{type: string, features: list<array<string, mixed>>}
+     */
+    public function context(Dataset $dataset, BoundingBox $bbox): array
+    {
+        $rows = DB::select(<<<'SQL'
+            WITH bounds AS (
+                SELECT ST_MakeEnvelope(?, ?, ?, ?, ?) AS geom
+            )
+            SELECT p.external_id,
+                   p.revision,
+                   p.properties,
+                   ST_AsGeoJSON(p.geom, 9)::jsonb AS geometry
+            FROM parcels p
+            CROSS JOIN bounds b
+            WHERE p.dataset_id = ?
+              AND p.active = true
+              AND p.geom && b.geom
+              AND ST_Intersects(p.geom, b.geom)
+            ORDER BY p.external_id
+            SQL, [
+            $bbox->minX,
+            $bbox->minY,
+            $bbox->maxX,
+            $bbox->maxY,
+            $dataset->srid,
+            $dataset->getKey(),
+        ]);
+
+        $features = array_map(function (object $row): array {
+            $hostProperties = $this->decodeObject($row->properties);
+
+            return [
+                'type' => 'Feature',
+                'id' => $row->external_id,
+                'geometry' => $this->decodeObject($row->geometry),
+                'properties' => array_merge($hostProperties, [
+                    'external_id' => $row->external_id,
+                    'revision' => (int) $row->revision,
+                ]),
+            ];
+        }, $rows);
+
+        return [
+            'type' => 'FeatureCollection',
+            'features' => $features,
         ];
     }
 
