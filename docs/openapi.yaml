@@ -1,0 +1,103 @@
+openapi: 3.1.0
+info:
+  title: Digitalizador Catastral API
+  version: 0.1.0
+  description: >-
+    Autonomous cadastral geometry API. Authentication and authorization are intentionally
+    outside this service and remain the responsibility of the embedding host.
+servers:
+  - url: /api/v1
+paths:
+  /health:
+    get:
+      operationId: health
+      responses:
+        '200':
+          description: Service is available.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    const: ok
+  /datasets/{externalKey}:
+    put:
+      operationId: upsertDataset
+      parameters:
+        - name: externalKey
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^[A-Za-z0-9._~-]+$'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DatasetPolicyInput'
+      responses:
+        '200':
+          description: Existing dataset updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DatasetEnvelope'
+        '201':
+          description: Dataset created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DatasetEnvelope'
+        '422':
+          description: Invalid dataset policy.
+components:
+  schemas:
+    DatasetPolicyInput:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+        - srid
+        - precision_grid
+        - area_tolerance
+        - allow_holes
+        - allow_multipolygon
+      properties:
+        name:
+          type: string
+        srid:
+          type: integer
+          minimum: 1
+        precision_grid:
+          type: number
+          exclusiveMinimum: 0
+        area_tolerance:
+          type: number
+          minimum: 0
+        minimum_area:
+          type: [number, 'null']
+          minimum: 0
+        allow_holes:
+          type: boolean
+        allow_multipolygon:
+          type: boolean
+    Dataset:
+      allOf:
+        - $ref: '#/components/schemas/DatasetPolicyInput'
+        - type: object
+          required: [id, external_key]
+          properties:
+            id:
+              type: string
+              format: uuid
+            external_key:
+              type: string
+    DatasetEnvelope:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/Dataset'
