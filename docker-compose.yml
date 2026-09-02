@@ -1,0 +1,38 @@
+services:
+  db:
+    image: postgis/postgis:16-3.5
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-digitalizador}
+      POSTGRES_USER: ${POSTGRES_USER:-digitalizador}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-digitalizador}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-digitalizador} -d ${POSTGRES_DB:-digitalizador}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - postgis_data:/var/lib/postgresql/data
+
+  api:
+    build:
+      context: ./services/api
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      DB_CONNECTION: pgsql
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_DATABASE: ${POSTGRES_DB:-digitalizador}
+      DB_USERNAME: ${POSTGRES_USER:-digitalizador}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-digitalizador}
+    ports:
+      - "${API_PORT:-8080}:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgis_data:

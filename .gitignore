@@ -1,0 +1,14 @@
+.env
+.env.*
+!.env.example
+node_modules/
+dist/
+coverage/
+playwright-report/
+test-results/
+services/api/vendor/
+services/api/.phpunit.cache/
+services/api/storage/logs/*.log
+.DS_Store
+.idea/
+.vscode/

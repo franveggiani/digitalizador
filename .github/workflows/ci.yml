@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: ['main', 'feat/**', 'fix/**']
+  pull_request:
+
+jobs:
+  typescript:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --no-frozen-lockfile
+      - run: pnpm test
+      - run: pnpm build
+
+  php:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgis/postgis:16-3.5
+        env:
+          POSTGRES_DB: digitalizador_test
+          POSTGRES_USER: digitalizador
+          POSTGRES_PASSWORD: digitalizador
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U digitalizador -d digitalizador_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_pgsql
+          coverage: none
+      - working-directory: services/api
+        run: composer install --no-interaction --prefer-dist --no-progress
+      - working-directory: services/api
+        env:
+          APP_ENV: testing
+          APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+          DB_CONNECTION: pgsql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_DATABASE: digitalizador_test
+          DB_USERNAME: digitalizador
+          DB_PASSWORD: digitalizador
+        run: vendor/bin/phpunit
