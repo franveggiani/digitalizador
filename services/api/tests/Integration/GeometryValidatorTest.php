@@ -31,8 +31,24 @@ final class GeometryValidatorTest extends TestCase
         self::assertSame([], $result->errors);
         self::assertNotNull($result->normalizedGeometry);
         self::assertSame('Polygon', $result->normalizedGeometry['type']);
-        self::assertEqualsWithDelta(2534000.123, $result->normalizedGeometry['coordinates'][0][0][0], 0.0000001);
-        self::assertEqualsWithDelta(6364000.250, $result->normalizedGeometry['coordinates'][0][0][1], 0.0000001);
+
+        $ring = $result->normalizedGeometry['coordinates'][0];
+        $containsExpectedCorner = false;
+
+        foreach ($ring as $coordinate) {
+            if (
+                abs((float) $coordinate[0] - 2534000.123) <= 0.0000001
+                && abs((float) $coordinate[1] - 6364000.250) <= 0.0000001
+            ) {
+                $containsExpectedCorner = true;
+                break;
+            }
+        }
+
+        self::assertTrue(
+            $containsExpectedCorner,
+            'Precision reduction must round the coordinate without requiring PostGIS to preserve ring start order.',
+        );
     }
 
     public function test_self_intersection_returns_stable_code_and_problem_coordinate(): void
