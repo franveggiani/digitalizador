@@ -10,15 +10,17 @@ use JsonException;
 
 final class ConfiguredPgsqlParcelDataSource implements ParcelDataSource
 {
+    private const SOURCE_ALIAS = 'p';
+
     public function find(string $externalId): ?ParcelFeature
     {
         $config = $this->configuration();
         $table = $this->quoteTable($config['table']);
-        $id = $this->quoteIdentifier($config['id_column']);
-        $geom = $this->quoteIdentifier($config['geometry_column']);
+        $id = $this->qualifiedIdentifier($config['id_column']);
+        $geom = $this->qualifiedIdentifier($config['geometry_column']);
         $revision = $this->optionalSelect($config['revision_column'], 'revision');
         $label = $config['label_column'] !== null && $config['label_column'] !== ''
-            ? $this->quoteIdentifier($config['label_column']).'::text AS label'
+            ? $this->qualifiedIdentifier($config['label_column']).'::text AS label'
             : $id.'::text AS label';
 
         [$activeSql, $activeBindings] = $this->activePredicate($config);
@@ -30,7 +32,7 @@ final class ConfiguredPgsqlParcelDataSource implements ParcelDataSource
                    ST_SRID({$geom}) AS srid,
                    ST_GeometryType({$geom}) AS geometry_type,
                    ST_AsGeoJSON({$geom}, 9)::jsonb AS geometry
-            FROM {$table}
+            FROM {$table} AS p
             WHERE {$id}::text = ?
               AND {$geom} IS NOT NULL
               AND NOT ST_IsEmpty({$geom})
@@ -59,11 +61,11 @@ final class ConfiguredPgsqlParcelDataSource implements ParcelDataSource
         }
 
         $table = $this->quoteTable($config['table']);
-        $id = $this->quoteIdentifier($config['id_column']);
-        $geom = $this->quoteIdentifier($config['geometry_column']);
+        $id = $this->qualifiedIdentifier($config['id_column']);
+        $geom = $this->qualifiedIdentifier($config['geometry_column']);
         $revision = $this->optionalSelect($config['revision_column'], 'revision');
         $label = $config['label_column'] !== null && $config['label_column'] !== ''
-            ? $this->quoteIdentifier($config['label_column']).'::text AS label'
+            ? $this->qualifiedIdentifier($config['label_column']).'::text AS label'
             : $id.'::text AS label';
 
         [$activeSql, $activeBindings] = $this->activePredicate($config);
@@ -78,7 +80,7 @@ final class ConfiguredPgsqlParcelDataSource implements ParcelDataSource
                    ST_SRID({$geom}) AS srid,
                    ST_GeometryType({$geom}) AS geometry_type,
                    ST_AsGeoJSON({$geom}, 9)::jsonb AS geometry
-            FROM {$table}
+            FROM {$table} AS p
             CROSS JOIN bounds
             WHERE {$geom} IS NOT NULL
               AND NOT ST_IsEmpty({$geom})
@@ -153,7 +155,7 @@ final class ConfiguredPgsqlParcelDataSource implements ParcelDataSource
         }
 
         return [
-            'AND '.$this->quoteIdentifier($config['active_column']).' = ?',
+            'AND '.$this->qualifiedIdentifier($config['active_column']).' = ?',
             [$config['active_value']],
         ];
     }
@@ -164,7 +166,7 @@ final class ConfiguredPgsqlParcelDataSource implements ParcelDataSource
             return 'NULL::bigint AS '.$alias;
         }
 
-        return $this->quoteIdentifier($column).'::bigint AS '.$alias;
+        return $this->qualifiedIdentifier($column).'::bigint AS '.$alias;
     }
 
     private function quoteTable(string $table): string
@@ -175,6 +177,11 @@ final class ConfiguredPgsqlParcelDataSource implements ParcelDataSource
         }
 
         return implode('.', array_map(fn (string $part): string => $this->quoteIdentifier($part), $parts));
+    }
+
+    private function qualifiedIdentifier(string $identifier): string
+    {
+        return self::SOURCE_ALIAS.'.'.$this->quoteIdentifier($identifier);
     }
 
     private function quoteIdentifier(string $identifier): string
