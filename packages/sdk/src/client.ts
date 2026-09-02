@@ -1,11 +1,15 @@
+import type {
+  Bbox,
+  FeatureCollectionDto,
+  GeoJsonGeometry,
+  ParcelFeatureDto,
+} from './types.js';
+
+export type { GeoJsonGeometry } from './types.js';
+
 export interface DigitizerClientOptions {
   readonly apiBaseUrl: string;
   readonly fetch?: typeof globalThis.fetch;
-}
-
-export interface GeoJsonGeometry {
-  readonly type: string;
-  readonly coordinates: unknown;
 }
 
 export interface ParcelDto {
@@ -65,12 +69,45 @@ export class DigitizerClient {
     }
   }
 
+  /** Existing internal workspace API retained for later session/commit operations. */
   public async getParcel(datasetExternalKey: string, parcelExternalId: string): Promise<ParcelDto> {
     const dataset = encodeURIComponent(datasetExternalKey);
     const parcel = encodeURIComponent(parcelExternalId);
 
     return this.request<ParcelDto>(
       `${this.apiBaseUrl}/api/v1/datasets/${dataset}/parcels/${parcel}`,
+      { method: 'GET' },
+    );
+  }
+
+  /** Reads the authoritative parcel directly from Laravel's configured cadastral datasource. */
+  public async getSourceParcel(parcelExternalId: string): Promise<ParcelFeatureDto> {
+    const parcel = encodeURIComponent(parcelExternalId);
+
+    return this.request<ParcelFeatureDto>(
+      `${this.apiBaseUrl}/api/v1/parcels/${parcel}`,
+      { method: 'GET' },
+    );
+  }
+
+  /** Reads bounded authoritative parcel context used for display and snapping. */
+  public async getParcelContext(bbox: Bbox, limit?: number): Promise<FeatureCollectionDto> {
+    if (bbox.length !== 4 || bbox.some((value) => !Number.isFinite(value))) {
+      throw new Error('INVALID_BBOX');
+    }
+
+    const search = new URLSearchParams();
+    search.set('bbox', bbox.join(','));
+
+    if (limit !== undefined) {
+      if (!Number.isInteger(limit) || limit < 1) {
+        throw new Error('INVALID_CONTEXT_LIMIT');
+      }
+      search.set('limit', String(limit));
+    }
+
+    return this.request<FeatureCollectionDto>(
+      `${this.apiBaseUrl}/api/v1/parcels/context?${search.toString()}`,
       { method: 'GET' },
     );
   }
