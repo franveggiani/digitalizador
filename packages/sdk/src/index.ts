@@ -2,9 +2,16 @@ export {
   DigitizerApiError,
   DigitizerClient,
   type DigitizerClientOptions,
-  type GeoJsonGeometry,
   type ParcelDto,
 } from './client.js';
+
+export type {
+  Bbox,
+  FeatureCollectionDto,
+  GeoJsonFeatureDto,
+  GeoJsonGeometry,
+  ParcelFeatureDto,
+} from './types.js';
 
 export {
   createInitialEditorState,
