@@ -147,7 +147,7 @@ export class CadastralDigitizerElement extends LitElement {
 
   public cancelDraft(): void {
     if (this.selectedParcel === null || this.mapAdapter === null) return;
-    this.mapAdapter.exitModify();
+    this.mapAdapter.clearDraft();
     this.draftGeometry = null;
     this.history = null;
     this.selectedVertex = null;
