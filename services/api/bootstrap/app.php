@@ -1,8 +1,10 @@
 <?php
 
+use App\Support\ApiProblemException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -15,6 +17,18 @@ return Application::configure(basePath: dirname(__DIR__))
         // The host system owns access control. This API intentionally has no auth middleware.
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        // Public geometry/domain exceptions are mapped explicitly by their handlers.
+        $exceptions->render(function (ApiProblemException $exception, Request $request) {
+            if (! $request->expectsJson()) {
+                return null;
+            }
+
+            return response()->json([
+                'error' => [
+                    'code' => $exception->errorCode,
+                    'message' => $exception->getMessage(),
+                    'details' => $exception->details,
+                ],
+            ], $exception->status);
+        });
     })
     ->create();
