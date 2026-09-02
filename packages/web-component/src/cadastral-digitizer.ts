@@ -203,6 +203,7 @@ export class CadastralDigitizerElement extends LitElement {
   protected override render() {
     const parcelTitle = this.selectedParcel?.label ?? this.selectedParcel?.external_id ?? 'Sin parcela seleccionada';
     const vertex = this.selectedVertex;
+    const displayedSrid = this.normalizedConfig?.srid ?? (this.srid > 0 ? this.srid : '—');
 
     return html`
       <section class="shell" aria-label="Digitalizador catastral">
@@ -258,7 +259,7 @@ export class CadastralDigitizerElement extends LitElement {
 
         <footer class="status" data-role="status">
           <span>XY ${formatCoordinate(this.cursorCoordinate)}</span>
-          <span class="optional">EPSG:${this.normalizedConfig?.srid ?? this.srid || '—'}</span>
+          <span class="optional">EPSG:${displayedSrid}</span>
           <span class="optional">CTX ${this.contextCount}</span>
           <span class=${this.snapped ? 'snap-on' : 'snap-off'}>${this.snapped ? 'SNAP ✓' : 'SNAP —'}</span>
         </footer>
